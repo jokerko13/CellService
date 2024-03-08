@@ -1,3 +1,4 @@
+local npc = {}
 local function createMenu(locationID)
     local options = {}
     local location = DRZ.Location[locationID]
@@ -9,9 +10,38 @@ local function createMenu(locationID)
                 icon = menuItem.icon,
                 onSelect = function()
                     if menuItem.value == "hunger" or "thirst" then
-                        TriggerEvent("drz_cellservice:kontrolaHunger", menuItem.value)
+                        TriggerEvent('esx_status:getStatus', menuItem.value, function(status)
+                            if status.val < DRZ.MinimumAmountCheck then
+                                TriggerServerEvent("drz_cellservice:pridani", menuItem.value)
+                                if menuItem.value == "hunger" then
+                                    exports['okokNotify']:Alert("Notification", "You got some food", 3000, 'info')
+                                elseif menuItem.value == "thirst" then
+                                    exports['okokNotify']:Alert("Notification", "You got some drink", 3000, 'info')
+                                end
+                            else
+                                exports['okokNotify']:Alert("Notification", "You are not entitled to refreshments yet", 3000, 'info')
+                            end
+                        end)
                     elseif menuItem.value == "dispatch" then
-                        TriggerEvent("drz_cellservice:kontrolaHunger", menuItem.value)
+                        exports['okokNotify']:Alert("Notification", "The police were called", 3000, 'info')
+                        local data = exports['cd_dispatch']:GetPlayerInfo()
+                        TriggerServerEvent('cd_dispatch:AddNotification', {
+                            job_table = {'police', 'sheriff'}, 
+                            coords = data.coords,
+                            title = 'Assistance in cell',
+                            flash = 0,
+                            unique_id = data.unique_id,
+                            sound = 1,
+                            blip = {
+                                sprite = 431, 
+                                scale = 1.2, 
+                                colour = 3,
+                                flashes = false, 
+                                text = '911 - Assistance Needed',
+                                time = 5,
+                                radius = 0,
+                            }
+                        })
                     end
                 end,
             })
@@ -27,43 +57,6 @@ local function createMenu(locationID)
         lib.showContext('menu_cpz')
     end
 end
-
-RegisterNetEvent("drz_cellservice:kontrolaHunger")
-AddEventHandler("drz_cellservice:kontrolaHunger", function(hodnota)
-    TriggerEvent('esx_status:getStatus', hodnota, function(status)
-        if status.val < DRZ.MinimumAmountCheck then
-            TriggerServerEvent("drz_cellservice:pridani", hodnota)
-            if hodnota == "hunger" then
-                exports['okokNotify']:Alert("Notification", "You got some food", 3000, 'info')
-            elseif hodnota == "thirst" then
-                exports['okokNotify']:Alert("Notification", "You got some drink", 3000, 'info')
-            end
-        else
-            exports['okokNotify']:Alert("Notification", "You are not entitled to refreshments yet", 3000, 'info')
-        end
-    end)
-    if hodnota == "dispatch" then
-        exports['okokNotify']:Alert("Notification", "The police were called", 3000, 'info')
-        local data = exports['cd_dispatch']:GetPlayerInfo()
-        TriggerServerEvent('cd_dispatch:AddNotification', {
-            job_table = {'police', 'sheriff'}, 
-            coords = data.coords,
-            title = 'Assistance in cell',
-            flash = 0,
-            unique_id = data.unique_id,
-            sound = 1,
-            blip = {
-                sprite = 431, 
-                scale = 1.2, 
-                colour = 3,
-                flashes = false, 
-                text = '911 - Assistance Needed',
-                time = 5,
-                radius = 0,
-            }
-        })
-    end
-end)
 
 for ID, locationData in pairs(DRZ.Location) do
     local LD = locationData
